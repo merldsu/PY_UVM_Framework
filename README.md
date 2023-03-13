@@ -1,3 +1,4 @@
+# License
 Copyright [2023] [MERL-DSU]
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,16 +29,22 @@ This repo contain the Py-UVM framework for RISC-V Single Cycle Core
 
 # Setting up Environment
 1) Configuration File:
-        a) Open the configuration.py file.
-        b) Enter the RISC-V Extension supported by your hardware.
-        c) Enter the Excluded Instruction name as per your requirements.
+
+     a) Open the configuration.py file.
+     
+     b) Enter the RISC-V Extension supported by your hardware.
+     
+     c) Enter the Excluded Instruction name as per your requirements.
    
    More details can be found in configuration.py file
    
    
 2) Test.txt:
-        a) Open the Test.txt file.
-        b) Enter the Testname and number of iterations.
+
+     a) Open the Test.txt file.
+        
+     b) Enter the Testname and number of iterations.
+        
         
         For example:
         Test=riscv_random_test Iteration=100
@@ -53,7 +60,7 @@ This repo contain the Py-UVM framework for RISC-V Single Cycle Core
 
 
 # Running Framework 
-python3 Script.py
+         python3 Script.py
 
 # Test Information
 All the log files will be available in the log folder.
