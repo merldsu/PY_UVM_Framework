@@ -1,0 +1,37 @@
+// Copyright [2023] [MERL-DSU]
+
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+
+//    http://www.apache.org/licenses/LICENSE-2.0
+
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+
+INPUT PORTS
+clk                        = This is the port for clock routed for the core
+rst                        = This port is used for global reset of the core
+Instruction_Write_Enable   = This is a single bit signal, This shall be made high if writing on the instruction memory is intended, this signal shall be made high along with a Zero reset for preloading tasks of Py-UVM
+Instruction_Write          = This is a 32 bit siganl which shall be used for providing the instruction which is inteded to be wrritten in instruction memory while preloading task.
+Instruction_Address        = This is a 32 bit signal used for indicating the intended address of instruction memory where the instruction is to be wrriten in preloading taks
+Data_write_Address = this is a 32 bit signal used for indicating the intended address of data memory where the data is to be written in pre-loading task
+Data_write_Data = This is a 32 bit signal used for providing intended data to write in the data memory
+ 
+OUTPUT PORTS
+
+Instruction_cmnd_Monitor            = This is the 32 bit signal which contains the instruction which is given to the DUT from the driver, this shall be used in command monitor
+Instruction_Address_cmd_Monitor     = This is the 32 bit signal which contains the instruction's Address(PC) which is given to the DUT from the driver, this shall be used in command monitor
+
+Instruction_result_Monitor          = This is the 32 bit signal which contains the  current instruction , this shall be used in result monitor.
+Instruction_Address_result_Monitor  = This is the 32 bit signal which contains the  current instruction's address (PC) , this shall be used in result monitor.
+Result_result_Monitor               = This is the 32 bit signal which contains the   result generated via current instruction , this shall be used in result monitor.
+
+
+
+Finish_Prog                         = This is a single bit signal which gets high whenever ecall instruction is detected in RTL, indicating the end of the program.             
