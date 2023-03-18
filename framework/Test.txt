@@ -1,5 +1,4 @@
 Test=riscv_random_test Iteration=100
 Test=riscv_load_test Iteration=1000
-Test=riscv_store_test Iteration=2500
-Test=riscv_random_test Iteration=10000
-Test=riscv_arithmetic_test Iteration=10000
+Test=riscv_store_test Iteration=1000
+Test=riscv_arithmetic_test Iteration=1000

@@ -1,4 +1,4 @@
-# Copyright [2023] [MERL-DSU]
+# Copyright 2023 MERL-DSU
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 
 
 import cocotb
@@ -135,8 +134,6 @@ class Generator(uvm_component):
 			self.OP_RV32=f_opcode[3]
 		elif(testname=="riscv_m_test"):
 			self.OP_RV32=f_opcode[4]
-		elif (testname=="riscv_branch_test"):
-			self.OP_RV32=0x63
 				
 		return self.OP_RV32
 		
@@ -158,9 +155,6 @@ class Generator(uvm_component):
 		elif (opcode==0x33):
 			self.INSTRUCTION=self.M_extension()
 			
-		elif (opcode==0x63):
-			self.INSTRUCTION=self.fixed_brancheq(testiteration)
-			
 		else:
 			pass
 			
@@ -172,92 +166,97 @@ class Generator(uvm_component):
 		self.logger.info("Execution of Instruction Generator")
 		status=0
 		counter=1
-		while (counter<=self.test_iteration):
-			myopcode=self.opcode_selector(self.testname,self.opcode_l)
-			
-			instruct_generated=self.instruction_select(myopcode,self.test_iteration)
-			
-			
-			for y in exclude_instructions:
-				if (y=="auipc" and instruct_generated[27:34]=="0010111"):
-					status=1
-				if (y=="lb" and instruct_generated[19:22]=="000" and instruct_generated[27:34]=="0000011"):
-					status=1
-				if (y=="lh" and instruct_generated[19:22]=="001" and instruct_generated[27:34]=="0000011"):
-					status=1
-				if (y=="lw" and instruct_generated[19:22]=="010" and instruct_generated[27:34]=="0000011"):
-					status=1
-				if (y=="lbu" and instruct_generated[19:22]=="100" and instruct_generated[27:34]=="0000011"):
-					status=1
-				if (y=="lhu" and instruct_generated[19:22]=="101" and instruct_generated[27:34]=="0000011"):
-					status=1
-				if (y=="sb" and instruct_generated[19:22]=="000" and instruct_generated[27:34]=="0100011"):
-					status=1
-				if (y=="sh" and instruct_generated[19:22]=="001" and instruct_generated[27:34]=="0100011"):
-					status=1
-				if (y=="sw" and instruct_generated[19:22]=="010" and instruct_generated[27:34]=="0100011"):
-					status=1
-				if (y=="slti" and instruct_generated[19:22]=="010" and instruct_generated[27:34]=="0010011"):
-					status=1
-				if (y=="sltiu" and instruct_generated[19:22]=="011" and instruct_generated[27:34]=="0010011"):
-					status=1
-				if (y=="xori" and instruct_generated[19:22]=="100" and instruct_generated[27:34]=="0010011"):
-					status=1
-				if (y=="ori" and instruct_generated[19:22]=="110" and instruct_generated[27:34]=="0010011"):
-					status=1
-				if (y=="andi" and instruct_generated[19:22]=="111" and instruct_generated[27:34]=="0010011"):
-					status=1
-				if (y=="slli" and instruct_generated[19:22]=="001" and instruct_generated[27:34]=="0010011"):
-					status=1
-				if (y=="srli" and instruct_generated[19:22]=="101" and instruct_generated[27:34]=="0010011" and instruct_generated[2:9]=="0000000"):
-					status=1
-				if (y=="srai" and instruct_generated[19:22]=="101" and instruct_generated[27:34]=="0010011" and instruct_generated[2:9]=="0100000"):
-					status=1
-				if (y=="add" and instruct_generated[19:22]=="000" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0000000"):
-					status=1
-				if (y=="sub" and instruct_generated[19:22]=="000" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0100000"):
-					status=1
-				if (y=="sll" and instruct_generated[19:22]=="001" and instruct_generated[27:34]=="0110011"):
-					status=1
-				if (y=="slt" and instruct_generated[19:22]=="010" and instruct_generated[27:34]=="0110011"):
-					status=1
-				if (y=="sltu" and instruct_generated[19:22]=="011" and instruct_generated[27:34]=="0110011"):
-					status=1
-				if (y=="xor" and instruct_generated[19:22]=="100" and instruct_generated[27:34]=="0110011"):
-					status=1
-				if (y=="srl" and instruct_generated[19:22]=="101" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0000000"):
-					status=1
-				if (y=="sra" and instruct_generated[19:22]=="101" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0100000"):
-					status=1
-				if (y=="or" and instruct_generated[19:22]=="110" and instruct_generated[27:34]=="0110011"):
-					status=1
-				if (y=="and" and instruct_generated[19:22]=="111" and instruct_generated[27:34]=="0110011"):
-					status=1
-				if (y=="mul" and instruct_generated[19:22]=="000" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0000001"):
-					status = 1
-				if (y=="mulh" and instruct_generated[19:22]=="001" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0000001"):
-					status = 1
-				if (y=="mulhsu" and instruct_generated[19:22]=="010" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0000001"):
-					status = 1
-				if (y=="mulhu" and instruct_generated[19:22]=="011" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0000001"):
-					status = 1
-				if (y=="div" and instruct_generated[19:22]=="100" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0000001"):
-					status = 1
-				if (y=="divu" and instruct_generated[19:22]=="101" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0000001"):
-					status = 1
-				if (y=="rem" and instruct_generated[19:22]=="110" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0000001"):
-					status = 1
-				if (y=="remu" and instruct_generated[19:22]=="111" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0000001"):
-					status = 1
-					
-			if(status == 0):
-				self.listins.append(self.INSTRUCTION)
-				
-				counter = counter + 1
-			else:
-				counter = counter
-				status = 0
 		
+		if (self.testname=='riscv_branch_test'):
+			self.branch_program=self.fixed_brancheq(self.test_iteration)
+			self.listins.extend(self.branch_program)
+		else:
+			while (counter<=self.test_iteration):
+				myopcode=self.opcode_selector(self.testname,self.opcode_l)
+				
+				instruct_generated=self.instruction_select(myopcode,self.test_iteration)
+				
+				
+				for y in exclude_instructions:
+					if (y=="auipc" and instruct_generated[27:34]=="0010111"):
+						status=1
+					if (y=="lb" and instruct_generated[19:22]=="000" and instruct_generated[27:34]=="0000011"):
+						status=1
+					if (y=="lh" and instruct_generated[19:22]=="001" and instruct_generated[27:34]=="0000011"):
+						status=1
+					if (y=="lw" and instruct_generated[19:22]=="010" and instruct_generated[27:34]=="0000011"):
+						status=1
+					if (y=="lbu" and instruct_generated[19:22]=="100" and instruct_generated[27:34]=="0000011"):
+						status=1
+					if (y=="lhu" and instruct_generated[19:22]=="101" and instruct_generated[27:34]=="0000011"):
+						status=1
+					if (y=="sb" and instruct_generated[19:22]=="000" and instruct_generated[27:34]=="0100011"):
+						status=1
+					if (y=="sh" and instruct_generated[19:22]=="001" and instruct_generated[27:34]=="0100011"):
+						status=1
+					if (y=="sw" and instruct_generated[19:22]=="010" and instruct_generated[27:34]=="0100011"):
+						status=1
+					if (y=="slti" and instruct_generated[19:22]=="010" and instruct_generated[27:34]=="0010011"):
+						status=1
+					if (y=="sltiu" and instruct_generated[19:22]=="011" and instruct_generated[27:34]=="0010011"):
+						status=1
+					if (y=="xori" and instruct_generated[19:22]=="100" and instruct_generated[27:34]=="0010011"):
+						status=1
+					if (y=="ori" and instruct_generated[19:22]=="110" and instruct_generated[27:34]=="0010011"):
+						status=1
+					if (y=="andi" and instruct_generated[19:22]=="111" and instruct_generated[27:34]=="0010011"):
+						status=1
+					if (y=="slli" and instruct_generated[19:22]=="001" and instruct_generated[27:34]=="0010011"):
+						status=1
+					if (y=="srli" and instruct_generated[19:22]=="101" and instruct_generated[27:34]=="0010011" and instruct_generated[2:9]=="0000000"):
+						status=1
+					if (y=="srai" and instruct_generated[19:22]=="101" and instruct_generated[27:34]=="0010011" and instruct_generated[2:9]=="0100000"):
+						status=1
+					if (y=="add" and instruct_generated[19:22]=="000" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0000000"):
+						status=1
+					if (y=="sub" and instruct_generated[19:22]=="000" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0100000"):
+						status=1
+					if (y=="sll" and instruct_generated[19:22]=="001" and instruct_generated[27:34]=="0110011"):
+						status=1
+					if (y=="slt" and instruct_generated[19:22]=="010" and instruct_generated[27:34]=="0110011"):
+						status=1
+					if (y=="sltu" and instruct_generated[19:22]=="011" and instruct_generated[27:34]=="0110011"):
+						status=1
+					if (y=="xor" and instruct_generated[19:22]=="100" and instruct_generated[27:34]=="0110011"):
+						status=1
+					if (y=="srl" and instruct_generated[19:22]=="101" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0000000"):
+						status=1
+					if (y=="sra" and instruct_generated[19:22]=="101" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0100000"):
+						status=1
+					if (y=="or" and instruct_generated[19:22]=="110" and instruct_generated[27:34]=="0110011"):
+						status=1
+					if (y=="and" and instruct_generated[19:22]=="111" and instruct_generated[27:34]=="0110011"):
+						status=1
+					if (y=="mul" and instruct_generated[19:22]=="000" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0000001"):
+						status = 1
+					if (y=="mulh" and instruct_generated[19:22]=="001" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0000001"):
+						status = 1
+					if (y=="mulhsu" and instruct_generated[19:22]=="010" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0000001"):
+						status = 1
+					if (y=="mulhu" and instruct_generated[19:22]=="011" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0000001"):
+						status = 1
+					if (y=="div" and instruct_generated[19:22]=="100" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0000001"):
+						status = 1
+					if (y=="divu" and instruct_generated[19:22]=="101" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0000001"):
+						status = 1
+					if (y=="rem" and instruct_generated[19:22]=="110" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0000001"):
+						status = 1
+					if (y=="remu" and instruct_generated[19:22]=="111" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0000001"):
+						status = 1
+						
+				if(status == 0):
+					self.listins.append(self.INSTRUCTION)
+					
+					counter = counter + 1
+				else:
+					counter = counter
+					status = 0
+			
 		self.listpc=self.program_counter()		
 		
 	def instruction_terminator(self):
@@ -361,7 +360,7 @@ class Generator(uvm_component):
 		
 		#In case of selection of R-type arthemetic instruction	
 		else:
-			if(self.FUNCT3 == 0 | self.FUNCT3 == 5):
+			if(self.FUNCT3 == 0 or self.FUNCT3 == 5):
 				self.FUNCT7 = random.choice(self.LISTF7)
 			else:
 				self.FUNCT7=0
@@ -378,13 +377,12 @@ class Generator(uvm_component):
 		program4=['0x00C000EF','0x00150513','0x00950863','0x00400493','0x00300513','0xFE9518E3','0x00300313']
 		program5=['0x00000493','0x00000413','0x00A00313','0x00645863','0x008484B3','0x00140413','0xFF5FF06F']
 		program6=['0x00000413','0x00000493','0x00A00E13','0x01C40863','0x008484B3','0x00140413','0xFF5FF06F']
-		program7=['00500113','00C00193','FF718393','0023E233','0041F2B3','004282B3','02728863','0041A233','00020463','00000293','0023A233','005203B3','402383B3','0471AA23','06002103','005104B3','008001EF','00100113','00910133','0221A023','00210063']
-		program8=['0x00400413','0x00100493','0x00249493','0x00940663','0x00148493','0x408484B3','0x008484B3']
-		program9=['0x00400413','0x00100493','0x00249493','0x00941663','0x00148493','0x408484B3','0x008484B3']
+		program7=['0x00400413','0x00100493','0x00249493','0x00940663','0x00148493','0x408484B3','0x008484B3']
+		program8=['0x00400413','0x00100493','0x00249493','0x00941663','0x00148493','0x408484B3','0x008484B3']
 		main_list=[]
-		
+		self.branch_pg=[]
 		for i in range(num_list):
-			program_choice=random.randrange(1,9)
+			program_choice=random.randrange(1,8)
 			
 			if program_choice==1:
 				main_list.extend(program1)
@@ -402,12 +400,11 @@ class Generator(uvm_component):
 				main_list.extend(program7)
 			elif program_choice==8:
 				main_list.extend(program8)
-			elif program_choice==9:
-				main_list.extend(program9)
 				
-			self.bin="0b"+bin(int(main_list[i],16))[2:].zfill(32)
+		for x in range(len(main_list)):
+			self.branch_pg.append("0b"+(bin(int(main_list[x],16))[2:].zfill(32)))
 		
-		return self.bin
+		return self.branch_pg
 	
 	def M_extension(self):
 	

@@ -1,4 +1,4 @@
-# Copyright [2023] [MERL-DSU]
+# Test=riscv_load_test Iteration=1000
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
