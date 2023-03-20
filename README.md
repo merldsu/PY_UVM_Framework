@@ -9,6 +9,7 @@ This repo contain the Py-UVM framework for RISC-V Single Cycle Core
 3) Verilator v4.1O6
 4) python 3.8 or high version
 5) Pandas
+6) Whisper ISS
 
 
 # Setting up Environment
