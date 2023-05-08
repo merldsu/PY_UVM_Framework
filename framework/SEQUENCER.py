@@ -52,4 +52,5 @@ class Sequencer(uvm_component):
 			
 		cmd_instr = ("0xFFFFFFFF","0xFFFFFFFF")
 		await self.pp_Driver.put(cmd_instr)
+		self.drop_objection()
 
