@@ -44,8 +44,10 @@ class DRIVER(uvm_driver):
 			if (send_pc =="0xFFFFFFFF" and send_instr =="0xFFFFFFFF"):
 				await RisingEdge(self.bfm.dut.clk)
 				await self.bfm.reset_m(1)
+				break
 			else:
 				await self.bfm.send_values_bfm(send_pc , send_instr)
+		self.drop_objection()
 			
 
 
