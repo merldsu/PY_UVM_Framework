@@ -1,5 +1,5 @@
-# PY_UVM_Framework
-This repo contain the PY-UVM framework for RISC-V Single Cycle Core
+# PY_UVM_Framework for SweRV EL2
+This repo contain the PY-UVM framework for SweRV EL2
 
 
 
@@ -20,6 +20,8 @@ This repo contain the PY-UVM framework for RISC-V Single Cycle Core
      b) Enter the RISC-V Extension supported by your hardware.
      
      c) Enter the Excluded Instruction name as per your requirements.
+     
+     d) Enter the CSR numbers if you want to include or exclude any.
    
    More details can be found in configuration.py file
    
@@ -42,6 +44,7 @@ This repo contain the PY-UVM framework for RISC-V Single Cycle Core
 4) riscv_artihmetic_test
 5) riscv_m_test
 6) riscv_utype_test
+7) riscv_csr_test
 
 
 # Running Framework 
