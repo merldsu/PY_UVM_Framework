@@ -1,4 +1,4 @@
-# PY_UVM_Framework
+# PY_UVM_Framework for RISC-V Single Cycle Core
 This repo contain the PY-UVM framework for RISC-V Single Cycle Core
 
 
