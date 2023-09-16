@@ -4,11 +4,11 @@ This repo contain the PY-UVM framework for SweRV EL2
 
 
 # Prerequisite
-1) Cocotb v1.8.O
-2) pyuvm
+1) Cocotb v1.8.O or high version
+2) pyuvm v2.9.1 or high version
 3) Verilator v5.OO6
 4) python 3.8 or high version
-5) Pandas
+5) Pandas v2.0.3 or high version
 6) Whisper ISS
 
 
