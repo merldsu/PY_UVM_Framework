@@ -24,11 +24,16 @@ from cocotb.triggers import FallingEdge ,Timer,RisingEdge,ClockCycles
 class Sequencer(uvm_component):
 	
 	def build_phase(self):
+		pass
+
+		
+class Swerv_Sequencer(Sequencer):
+	
+	def build_phase(self):
 		self.count = 0
 		self.Generator=ConfigDB().get(self,"","GENR")
 		self.pp_Driver = uvm_blocking_put_port("pp_Driver",self)
-		self.pp_Monitor = uvm_put_port("pp_Monitor",self)
-		self.bfm=ConfigDB().get(self,"","bfm")
+		
 	
 		
 	async def run_phase(self):
@@ -40,10 +45,8 @@ class Sequencer(uvm_component):
 		while (self.count < len(GEN_PC)):
 			cmd_instr = (self.Generator.listpc[self.count],self.Generator.hex_listins[self.count])
 			await self.pp_Driver.put(cmd_instr)
-			await self.pp_Monitor.put(cmd_instr)
 			self.count = self.count + 1
-		self.count = 0
-		#self.logger.info("Data is dispatch to Driver (***Sequencer***)")	
+		self.count = 0	
 		while (self.count < len(GEN_DATA)) :
 	
 			cmd_data = (self.Generator.listcounter[self.count],self.Generator.listdata[self.count])

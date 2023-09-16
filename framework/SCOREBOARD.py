@@ -21,13 +21,16 @@ import pandas as pd
 import numpy as np
 import csv
 import logging
-
-
+import Script as sp 
+import os
+from datetime import datetime 
+import shutil
+import time
 
 class Scoreboard(uvm_component):
 
 	
-		
+	# define the uvm phases function	
 	def check_phase(self):
 		self.logger.info('**********Execution Scoreboard**********')
 		self.rv32_read_csv()
@@ -36,12 +39,14 @@ class Scoreboard(uvm_component):
 		self.report_score()
 		self.logger.info('LOG the Results (Scoreboard)')
 
-		
+	# Create the function where we read two different CSV	
 	def rv32_read_csv(self):
 		
 		#import RTL_CSV and ISS_CSV file
 		self.df_RTL= pd.read_csv('RESULT_MONITOR.csv')
 		self.df_ISS = pd.read_csv('ISS.csv')
+		
+
 
 		# Read the coloumns from RTL CSV (Monitor)
 		
@@ -49,6 +54,7 @@ class Scoreboard(uvm_component):
 
 		self.RTL_INSTR_RV32 = self.df_RTL['INSTR_RES_MON'].tolist()
 		self.RTL_RESULT_RV32 = self.df_RTL['RESULT_MONITOR'].tolist()
+		
 		
 		# Read the coloumns from ISS CSV
 
@@ -64,12 +70,13 @@ class Scoreboard(uvm_component):
 		del self.ISS_RESULT_RV32[len(self.ISS_RESULT_RV32) - n_iss_res  :]
 		del self.ISS_ASS_RV32[len(self.ISS_ASS_RV32) - n_iss_assem  :]
 		
-		self.ISS_INSTR_RV32.append('0x00000073')
-		self.ISS_RESULT_RV32.append('0x00000000')
-		self.ISS_ASS_RV32.append('ecall')
+		#self.ISS_INSTR_RV32.append('0x00000073')
+		#self.ISS_RESULT_RV32.append('0x00000000')
+		#self.ISS_ASS_RV32.append('ecall')
+		
 		return self.RTL_INSTR_RV32, self.RTL_RESULT_RV32, self.ISS_INSTR_RV32 , self.ISS_RESULT_RV32 , self.ISS_ASS_RV32
 
-		
+	# define the function where we compare the Results of ISS & RTL	
 	def COMP(self,ins_rtl,ins_iss,res_rtl,res_iss):
 		self.logger.info('Comparing the Results (***Scoreboard***)')
 		list_status=[]
@@ -82,12 +89,14 @@ class Scoreboard(uvm_component):
 				list_status.append(status)	
 		return list_status
 
+	# where generate the status of True or False
 	def Status(self,RV32_Status):
 			status_RV32_T = RV32_Status.count("True")
 			status_RV32_F = RV32_Status.count("False")
 			
 			return status_RV32_T,status_RV32_F
 	
+	# Here we define the function that is responsible to generate CSV
 	def report_score(self):
 			
 		self.inst_rtl , self.result_rtl , self.inst_iss , self.result_iss , self.ass_rv32 = self.rv32_read_csv()
@@ -95,10 +104,22 @@ class Scoreboard(uvm_component):
 		COMP_RTL_ISS = self.COMP(self.inst_rtl, self.inst_iss , self.result_rtl  , self.result_iss )
 		stT,stF=self.Status(COMP_RTL_ISS)
 		
-		self.logger.info(f"The Number of Instructions that Run:{len(self.inst_rtl) - test_itr}") 
-		self.logger.info(f"The Number of Pass Test:{stT - test_itr}")
-		self.logger.info(f"The Number of false Test:{stF}")
+		self.logger.info(f"The total Number of Instructions:{len(self.inst_rtl) - test_itr}") 
+		self.logger.info(f"The total Number of Instructions Passed:{stT - test_itr}")
+		self.logger.info(f"The total Number of Instructions Failed:{stF}")
 		
+		seed = cocotb.RANDOM_SEED
+		now = datetime.now()
+		Date = now.strftime('%Y-%m-%d')
+		Time = now.strftime('%H-%M-%S')
+
+		if stF > 0:
+			status_r = "Fail"
+		else:
+			status_r = "Pass"
+		
+		formatted_info = f" {Date:<12} {Time:<12}     {os.getenv('Test','riscv_random_test'):<24}         {os.getenv('Iteration','10'):<28} {seed:<24}        {status_r}"
+		sp.over_all_report(formatted_info)
 
 		df_Sc=pd.DataFrame({'RTL_INSTR': self.inst_rtl,'ISS_INSTR': self.inst_iss,'RTL_RESULT': self.result_rtl,'ISS_RESULT': self.result_iss,"INSTR_ASSEMBLY" : self.ass_rv32 ,"STATUS":COMP_RTL_ISS})	
 		df_Sc.to_csv('Final_Results.csv',index=False)	

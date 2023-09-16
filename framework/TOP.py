@@ -29,92 +29,94 @@ from subprocess import run
 
 
 
+
+
 #IMPORT THE SYSTEM PATH TO LINK DIFFERENT PY FILE
 from pathlib import Path
 import sys
-sys.path.insert(0, str(Path("..").resolve()))
-
+sys.path.insert(0, str(Path(".").resolve()))
+#print("system",sys.path)
 
 # importing all classes
 
 #from Scripts import *
 import Script as sp 
-from BFM_RV32 import *
+from AGENT import *
+from AXI_BFM import *
 from SEQUENCER import *
 from GENERATOR import *
-from ISS_WHISPER import ISS_SIM
+from ISS_WHISPER import *
 from DRIVER import *
 from MONITOR import *
-from SCOREBOARD import Scoreboard
+from SCOREBOARD import *
 from COVERAGE import *
 
-# DEFINING BASE TESTER
 
-		
+class TOP(uvm_component):
+	def build_phase(self):
+		self.tester = BaseTester.create("tester",self)
+
 class PYUVM_ENV(uvm_env):
 	
 
 	
 	def build_phase(self):
 		
-		
-		self.tester = BaseTester.create("tester",self)
-		self.sequencer = Sequencer("sequencer",self)
-		self.driver = DRIVER("driver",self)
-		self.monitor = MONITOR("monitor",self)
+		self.logger.info("pyuvm env")
+		self.swerv_agent = Swerv_agent("swerv_agent",self)
 		self.iss_whi = ISS_SIM("iss_whi",self)
 		self.scoreboard = Scoreboard("scoreboard",self)
 		self.coverage= Coverage("coverage",self)
 		
-		self.cmd_fifo_seq = uvm_tlm_fifo("cmd_fifo_seq",self)	
-		self.cmd_fifo_seq_mon = uvm_tlm_fifo("cmd_fifo_seq_mon",self)
-
+		
 		
 	def connect_phase(self):
-		self.logger.info("PY_UVM Environment Execution")
-		self.sequencer.pp_Driver.connect(self.cmd_fifo_seq.put_export)
-		self.driver.gp_Sequencer.connect(self.cmd_fifo_seq.get_export)
-		
-		
-		self.sequencer.pp_Monitor.connect(self.cmd_fifo_seq_mon.put_export)
-		self.monitor.gp_Sequencer.connect(self.cmd_fifo_seq_mon.get_export)
-		
-
+		pass
+			
+# DEFINING BASE TESTER
 class BaseTester(uvm_component):
 		
 	def build_phase(self):
-		pass
+		self.logger.info("basetester")
 		
 		
 	def start_of_simulation_phase(self):
 		pass
 		
 	async def run_phase(self):
-		
+		self.raise_objection()
 		await self.bfm.start_tasks()
-		
-		
-		
-									
-class RV32_Tester(BaseTester):
+		self.drop_objection()
+
+	
+class Swerv_Tester(BaseTester):
 	def build_phase(self):
-		self.logger.info("**********RV32 Tester Build phase*********")
+		self.logger.info("**********Swerv Tester Build phase*********")
 		
 		self.Generator = Generator("Generator",self)
-		self.bfm = RV32_BFM()
-		
+		self.bfm = AXI_BFM()
+		self.env = PYUVM_ENV("env",self)
 		
 		ConfigDB().set(None,"*","bfm",self.bfm)
-		ConfigDB().set(None,"*","GENR",self.Generator)
+		ConfigDB().set(None,"*","GENR",self.Generator)					
 
 
-@pyuvm.test()			
+@pyuvm.test()
+
+
+					
 class RandomTest(uvm_test):
 
 	def build_phase(self):
 		self.logger.info("*********PY_TEST Decorator Build Phase*********")
-		uvm_factory().set_type_override_by_type(BaseTester,RV32_Tester)
-		self.env = PYUVM_ENV("env",self)
+		#uvm_factory().set_type_override_by_type(agent,Swerv_agent)
+		uvm_factory().set_type_override_by_type(BaseTester,Swerv_Tester)
+		self.top = TOP("top",self)
+		
+		
+		
+		
+		
 		
 		
 	def end_of_elaboration_phase(self):
@@ -127,15 +129,16 @@ class RandomTest(uvm_test):
 		self.add_logging_handler_hier(file_handler)
 		self.add_logging_handler_hier(stream_handler)
 		self.remove_streaming_handler_hier()
+		now = datetime.now()
+		Date = now.strftime('%Y-%m-%d')
+		Time = now.strftime('%H-%M-%S')
 		seed = cocotb.RANDOM_SEED
 		dir_path = f'log/{os.getenv("Test","riscv_random_test")}/'
 		self.logger.info(f"Test Name : {os.getenv('Test','riscv_random_test')} , Number of Instructions : {os.getenv('Iteration','10')} , Random Seed Number : {seed} \n")
+		
 
 	def final_phase(self):
 		sp.copy(self.dir_p)
-
-
-		
 
 
 				

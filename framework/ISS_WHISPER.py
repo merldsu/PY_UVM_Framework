@@ -27,7 +27,6 @@ class ISS_SIM(uvm_component):
 	
 	def extract_phase(self):
 		self.run_iss_sim()
-		
 	def run_iss_sim(self):
 	
 		self.logger.info("**********ISS_SIM Execution**********")
@@ -111,9 +110,10 @@ class ISS_SIM(uvm_component):
 		
 		
 		#HERE WE USE THE COMMAND TO RUN ISS(WHISPER)
+		
 		a = os.getcwd()
 		self.logger.info("Sending HEX file to ISS (ISS_SIM)")
-		os.system("whisper --isa im -x"+a+"/program.hex -s 0x00000000 --tohost 0xd0580000 -f ISS.txt")
+		os.system("whisper --isa imc --configfile "+a+"/whisper.json -x"+a+"/program.hex -s 0x00000000 --tohost 0xd0580000 -f ISS.txt")
 		self.logger.info("Read HEX file from ISS (Results) ")
 		os.system("python3 ISS_READ.py")
 		self.logger.info("Convert HEX file into CSV")

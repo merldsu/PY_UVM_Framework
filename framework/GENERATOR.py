@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import cocotb
 from cocotb.triggers import Timer
 import random
@@ -23,26 +22,33 @@ from pyuvm import *
 import os
 from configuration import *
 from func_timeout import func_timeout, FunctionTimedOut
+#IMPORT THE SYSTEM PATH TO LINK DIFFERENT PY FILE
+from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(".").resolve()))
+import generator_rv32imf as rv32imf
+import generator_csr_test as csr_test
+import generator_exclude_instruction as exclude_instruction
 
 class Generator(uvm_component):
 
-	def build_phase(self):
+	def build_phase(self): # This phase is used to build important arrays or lists.
 
-		self.listins=[]
-		self.hex_listins=[] #Instruction list
-		self.listpc=[] #Instruction pc
-		self.list_counter_=[] 
-		self.listdata=[] #data list
-		self.listcounter=[] #data pc
-		self.opcode_l=[]
-		self.i_ext_opcode=[0x3,0x23,0x13,0x37]
-		self.m_ext_opcode=[0x33]
+		self.listins=[] # This list is used in this file to carry important instructions in binary
+		self.hex_listins=[] #This list contains Instructions in Hex
+		self.listpc=[] #This list contains Instructions PC in Hex
+		self.listdata=[] #This list contains random data points in Hex
+		self.listcounter=[] #This list contains random data points PC in Hex
+		self.opcode_l=[] # This list is used to carry opcodes which are being selected by checking configuration file
+		self.i_ext_opcode=[0x3,0x23,0x13] #This list contains Opcodes for I-extension RISC-V
+		self.m_ext_opcode=[0x33] #This list contains Opcodes for M-extension RISC-V
 		
-	def end_of_elaboration_phase(self):
+	def end_of_elaboration_phase(self): # This phase is used to check the configuration file
 		self.logger.info("**********Generator Execution**********")
-		testname = os.getenv("Test","riscv_random_test")
+		testname = os.getenv("Test","riscv_csr_test")
+		count=0
 		
-		for x in extension:	
+		for x in extension: # This for loop is used to check extension list in configuration file
 			if (x=='RV32I'):
 				self.opcode_l.extend(self.i_ext_opcode)
 			elif (x=='RV32M'):
@@ -50,36 +56,39 @@ class Generator(uvm_component):
 			else:
 				self.logger.info("The selected Extension is not supported by Instruction Generator")
 				raise AssertionError("The selected Extension is not supported by Instruction Generator")
-		count=0
-		if (testname=='riscv_m_test'):
+				
+		if (testname=='riscv_m_test'):# This condition is used to verify whether the entered extension in configuration file supports the test name.
 			for x in extension:
 				if (x == 'RV32M'):
 					count = count + 1
 				else:
 					count = count
-		elif (testname=='riscv_load_test' or  testname=='riscv_store_test' or testname=='riscv_arithmetic_test' or testname=='riscv_utype_test' or testname=='riscv_branch_test'):
+					
+		elif (testname=='riscv_load_test' or  testname=='riscv_store_test' or testname=='riscv_arithmetic_test' or testname=='riscv_csr_test' or testname=='riscv_branch_test'):
 			for x in extension:
 				if (x == 'RV32I'):
 					count = count + 1
 				else:
 					count = count
+					
 		elif (testname == 'riscv_random_test'):
 			count = count + 1
+		
 		else:
 			count = count
 
-		if (count > 0):
+		if (count > 0): # If the count is greater than 0, means the extension entered in configuration file supports testname
 			self.logger.info("Found the given testname in the supported Extension list(***Generator***)") 
 		else:
 			self.logger.info("The Given Testname is not supported by the given Extension list(***Generator***)")
 			raise AssertionError('The Given Testname is not supported by the given Extension list(***Generator***)')
 			
-	def start_of_simulation_phase(self):
-		self.testname = os.getenv("Test","riscv_random_test")
+	def start_of_simulation_phase(self): # This phase is used to execute different important functions
+		self.testname = os.getenv("Test","riscv_csr_test")
 		self.test_iteration = int(os.getenv("Iteration","10"))
-		#self.test_it = int(test_iteration)
 		self.boot_sequencer()
 		self.initialize_registers()
+		
 		try:
 		
 			func_timeout(300,self.instruction_generator)
@@ -92,35 +101,50 @@ class Generator(uvm_component):
 		self.data_generator()
 		for x in range(len(self.listins)):
 			self.hex_listins.append("0x"+(hex(int(self.listins[x],2))[2:].zfill(8)))
-	def extract_phase(self):
+			
+	def extract_phase(self): # This phase is used generate CSV
 		instruction_bank= pd.DataFrame({'PC':self.listpc,'Instruction':self.hex_listins})
 		instruction_bank.to_csv('INSTR_RV32.csv',index=False)
 
 		data_bank= pd.DataFrame({'PC_ Data':self.listcounter,'Data':self.listdata})
 		data_bank.to_csv('DATA_RV32.csv',index=False)
 	
-	def boot_sequencer(self):
-		self.listins.append("0b11000000000000000000000100110111")
-		self.listins.append("0b00000000000000010000000100010011")
+	def boot_sequencer(self): # This function is used to generate boot sequence for DUT
+		self.listins.append("0b11000000000000000000000100110111") # Instruction in hex=0xC0000137
+		self.listins.append("0b00000000000000010000000100010011") # Instruction in hex=0x00010113
 		
-	def initialize_registers(self):
+	def initialize_registers(self): # This function is used to generate register initialization sequence for DUT
 		for i in range(32):
 			if (i!=2 and i!=0):
-				self.OPCODE_LUI = bin(55)[2:].zfill(7)
-				self.OPCODE_ADDI = bin(19)[2:].zfill(7)
-				self.IMM_LUI = random.randint(0, 1048575)
-				self.IMM_ADDI = random.randint(0, 4095)
-				self.FUNCT3 = bin(0)[2:].zfill(3)
-				self.RD = bin(i)[2:].zfill(5)
-				self.RS1= bin(i)[2:].zfill(5)
-				self.binary="0b"+bin(self.IMM_LUI)[2:].zfill(20)+self.RD+self.OPCODE_LUI
-				self.LUI="0b"+bin(int(self.binary,2))[2:].zfill(32)
-				self.binary1="0b"+bin(self.IMM_ADDI)[2:].zfill(12)+self.RS1+self.FUNCT3+self.RD+self.OPCODE_ADDI
-				self.ADDI="0b"+bin(int(self.binary1,2))[2:].zfill(32)
-				self.listins.append(self.LUI)
-				self.listins.append(self.ADDI)
+				immediate = random.randint(0,2147483647)
+				immediate=hex(immediate)
+				immediate='0x'+(immediate[2:].zfill(8))
+				Imm1 = immediate[2:7]
+				Imm2 = immediate[7:10]
+				dum1 = int(Imm2[0],16)
 				
-	def opcode_selector(self,testname,f_opcode):
+				if (dum1 >= 8):
+					r1 = int(Imm1,16) + 1
+					r21 = bin(r1)[2:]
+				else:
+					r1 = int(Imm1,16)
+					r21 = bin(r1)[2:]
+				s1 = bin(int(Imm2,16))[2:]
+				
+				
+				OPCODE_LUI = bin(55)[2:].zfill(7)
+				OPCODE_ADDI = bin(19)[2:].zfill(7)
+				IMM_LUI = r21
+				IMM_ADDI = s1
+				FUNCT3 = bin(0)[2:].zfill(3)
+				RD = bin(i)[2:].zfill(5)
+				RS1= bin(i)[2:].zfill(5)
+				LUI="0b"+IMM_LUI.zfill(20)+RD+OPCODE_LUI
+				ADDI="0b"+IMM_ADDI.zfill(12)+RS1+FUNCT3+RD+OPCODE_ADDI
+				self.listins.append(LUI)
+				self.listins.append(ADDI)
+				
+	def opcode_selector(self,testname,f_opcode): # This function selects the specific opcode from opcodes list coming from the function instruction generator
 	
 		if (testname=="riscv_random_test"):
 			self.OP_RV32=random.choice(f_opcode)
@@ -130,300 +154,82 @@ class Generator(uvm_component):
 			self.OP_RV32=f_opcode[1]
 		elif (testname=="riscv_arithmetic_test"):
 			self.OP_RV32=f_opcode[2]
-		elif(testname=="riscv_utype_test"):
-			self.OP_RV32=f_opcode[3]
 		elif(testname=="riscv_m_test"):
-			self.OP_RV32=f_opcode[4]
-				
+			self.OP_RV32=f_opcode[3]
+					
 		return self.OP_RV32
 		
-	
-	def instruction_select(self,opcode,testiteration):
+	def instruction_terminator(self): # This function generates program termination instruction
+
+		self.listins.append("0b00000000000000000000000001110011") # instruction in hex=0x00000073 (ecall)
 		
-		if (opcode==0x3):
-			self.INSTRUCTION = (self.get_load())
-			
-		elif (opcode==0x23):
-			self.INSTRUCTION = (self.get_store())
-			
-		elif (opcode==0x13):
-			self.INSTRUCTION = self.get_arthimetic()
-			
-		elif (opcode==0x37):
-			self.INSTRUCTION=self.u_type()
-			
-		elif (opcode==0x33):
-			self.INSTRUCTION=self.M_extension()
-			
-		else:
-			pass
-			
-		return self.INSTRUCTION
-			
-		
+		return self.listpc,self.listins
 	
-	def instruction_generator(self):
+	def program_counter(self): # This function Program counter generates values of multiplication of 4
+		self.list_counter_=[]
+		for x in range(len(self.listins)+1):
+			counter=4*x
+			hex_counter="0x"+(hex(counter)[2:].zfill(8))
+			self.list_counter_.append(hex_counter)
+		return self.list_counter_
+	
+	def data_generator(self): #This function generate data points and data counter and return both of them
+		self.logger.info("Execution of Data Generator")
+		for x in range(2048):
+			counter=3221224448 + (x*4)
+			hex_counter="0x"+(hex(counter)[2:].zfill(8))
+			self.listcounter.append(hex_counter)
+			data_values=random.randint(0,4294967295) 
+			hex_data="0x"+(hex(data_values)[2:].zfill(8))
+			self.listdata.append(hex_data)	
+			
+		return self.listcounter,self.listdata
+	
+	def instruction_generator(self): # This function instruction generator is used to generate the instruction and exclude the instruction provided by the user
+		
 		self.logger.info("Execution of Instruction Generator")
-		status=0
 		counter=1
+		counter_csr=1
 		
 		if (self.testname=='riscv_branch_test'):
-			self.branch_program=self.fixed_brancheq(self.test_iteration)
+			self.branch_program=rv32imf.fixed_brancheq(self.test_iteration) #Getting fixed branch and jump instructions
 			self.listins.extend(self.branch_program)
+		
+		elif (self.testname=='riscv_csr_test'):
+			while(counter_csr<=self.test_iteration):
+				self.csr_program=csr_test.csrtest(excluded_csr,implemented_csr,extension,privileged_mode) #Getting CSR instruction
+				
+				status_csr=exclude_instruction.csr_exclude(self.csr_program,exclude_instructions) # Getting exclude status, if the status is high means the user have decided to exclude the specific instruction.
+				
+				if(status_csr == 0): # If the status is greater than zero, the instruction is excluded
+					self.listins.append(self.csr_program)
+					counter_csr = counter_csr + 1
+				else:
+					counter_csr = counter_csr
+					status_csr = 0
+		
 		else:
 			while (counter<=self.test_iteration):
-				myopcode=self.opcode_selector(self.testname,self.opcode_l)
+				myopcode=self.opcode_selector(self.testname,self.opcode_l) # Sending list opcodes and testname to the function opcode selector and getting the specific opcode from the function
 				
-				instruct_generated=self.instruction_select(myopcode,self.test_iteration)
+				#Generating instruction depending on the basis of opcode
+				if (myopcode==0x3):
+					instruct_generated = (rv32imf.get_load())
+				elif (myopcode==0x23):
+					instruct_generated = (rv32imf.get_store())
+				elif (myopcode==0x13):
+					instruct_generated = rv32imf.get_arthimetic()
+				elif (myopcode==0x33):
+					instruct_generated=rv32imf.M_extension()
 				
+				status=exclude_instruction.rv32imf_exclude(instruct_generated,exclude_instructions) # Getting exclude status, if the status is high means the user have decided to exclude the specific instruction.	
 				
-				for y in exclude_instructions:
-					if (y=="auipc" and instruct_generated[27:34]=="0010111"):
-						status=1
-					if (y=="lb" and instruct_generated[19:22]=="000" and instruct_generated[27:34]=="0000011"):
-						status=1
-					if (y=="lh" and instruct_generated[19:22]=="001" and instruct_generated[27:34]=="0000011"):
-						status=1
-					if (y=="lw" and instruct_generated[19:22]=="010" and instruct_generated[27:34]=="0000011"):
-						status=1
-					if (y=="lbu" and instruct_generated[19:22]=="100" and instruct_generated[27:34]=="0000011"):
-						status=1
-					if (y=="lhu" and instruct_generated[19:22]=="101" and instruct_generated[27:34]=="0000011"):
-						status=1
-					if (y=="sb" and instruct_generated[19:22]=="000" and instruct_generated[27:34]=="0100011"):
-						status=1
-					if (y=="sh" and instruct_generated[19:22]=="001" and instruct_generated[27:34]=="0100011"):
-						status=1
-					if (y=="sw" and instruct_generated[19:22]=="010" and instruct_generated[27:34]=="0100011"):
-						status=1
-					if (y=="slti" and instruct_generated[19:22]=="010" and instruct_generated[27:34]=="0010011"):
-						status=1
-					if (y=="sltiu" and instruct_generated[19:22]=="011" and instruct_generated[27:34]=="0010011"):
-						status=1
-					if (y=="xori" and instruct_generated[19:22]=="100" and instruct_generated[27:34]=="0010011"):
-						status=1
-					if (y=="ori" and instruct_generated[19:22]=="110" and instruct_generated[27:34]=="0010011"):
-						status=1
-					if (y=="andi" and instruct_generated[19:22]=="111" and instruct_generated[27:34]=="0010011"):
-						status=1
-					if (y=="slli" and instruct_generated[19:22]=="001" and instruct_generated[27:34]=="0010011"):
-						status=1
-					if (y=="srli" and instruct_generated[19:22]=="101" and instruct_generated[27:34]=="0010011" and instruct_generated[2:9]=="0000000"):
-						status=1
-					if (y=="srai" and instruct_generated[19:22]=="101" and instruct_generated[27:34]=="0010011" and instruct_generated[2:9]=="0100000"):
-						status=1
-					if (y=="add" and instruct_generated[19:22]=="000" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0000000"):
-						status=1
-					if (y=="sub" and instruct_generated[19:22]=="000" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0100000"):
-						status=1
-					if (y=="sll" and instruct_generated[19:22]=="001" and instruct_generated[27:34]=="0110011"):
-						status=1
-					if (y=="slt" and instruct_generated[19:22]=="010" and instruct_generated[27:34]=="0110011"):
-						status=1
-					if (y=="sltu" and instruct_generated[19:22]=="011" and instruct_generated[27:34]=="0110011"):
-						status=1
-					if (y=="xor" and instruct_generated[19:22]=="100" and instruct_generated[27:34]=="0110011"):
-						status=1
-					if (y=="srl" and instruct_generated[19:22]=="101" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0000000"):
-						status=1
-					if (y=="sra" and instruct_generated[19:22]=="101" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0100000"):
-						status=1
-					if (y=="or" and instruct_generated[19:22]=="110" and instruct_generated[27:34]=="0110011"):
-						status=1
-					if (y=="and" and instruct_generated[19:22]=="111" and instruct_generated[27:34]=="0110011"):
-						status=1
-					if (y=="mul" and instruct_generated[19:22]=="000" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0000001"):
-						status = 1
-					if (y=="mulh" and instruct_generated[19:22]=="001" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0000001"):
-						status = 1
-					if (y=="mulhsu" and instruct_generated[19:22]=="010" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0000001"):
-						status = 1
-					if (y=="mulhu" and instruct_generated[19:22]=="011" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0000001"):
-						status = 1
-					if (y=="div" and instruct_generated[19:22]=="100" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0000001"):
-						status = 1
-					if (y=="divu" and instruct_generated[19:22]=="101" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0000001"):
-						status = 1
-					if (y=="rem" and instruct_generated[19:22]=="110" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0000001"):
-						status = 1
-					if (y=="remu" and instruct_generated[19:22]=="111" and instruct_generated[27:34]=="0110011" and instruct_generated[2:9]=="0000001"):
-						status = 1
-						
-				if(status == 0):
-					self.listins.append(self.INSTRUCTION)
+				if(status == 0): # If the status is greater than zero, the instruction is excluded
+					self.listins.append(instruct_generated)
 					
 					counter = counter + 1
 				else:
 					counter = counter
 					status = 0
 			
-		self.listpc=self.program_counter()		
-		
-	def instruction_terminator(self):
-
-		self.listins.append("0b00000000000000000000000001110011")
-		
-		return self.listpc,self.listins
-	
-	def program_counter(self): #Program counter which generates values of multiplication of 4
-		for x in range(len(self.listins)+1):
-			self.counter=4*x
-			self.hex_counter="0x"+(hex(self.counter)[2:].zfill(8))
-			self.list_counter_.append(self.hex_counter)
-		return self.list_counter_
-	
-	def data_generator(self): #This function generate data points and data counter and return both of them
-		self.logger.info("Execution of Data Generator")
-		for x in range(2048):
-			self.counter=3221224448 + (x*4) 
-			self.hex_counter="0x"+(hex(self.counter)[2:].zfill(8))
-			self.listcounter.append(self.hex_counter)
-			self.data_values=random.randint(0,4294967295) 
-			self.hex_data="0x"+(hex(self.data_values)[2:].zfill(8))
-			self.listdata.append(self.hex_data)	
-			
-		return self.listcounter,self.listdata
-		
-	def u_type(self):
-			
-		LISTOPCODE_UTYPE=[55,23] #One for LUI and another for AUIPC
-		self.RD = random.randint(0,31)
-		while self.RD==2:
-			self.RD=random.randint(0,31)
-		self.IMM = random.randint(0, 1048575)
-		self.OPCODE_UTYPE=random.choice(LISTOPCODE_UTYPE)	
-		self.binary="0b"+bin(self.IMM)[2:].zfill(20)+bin(self.RD)[2:].zfill(5)+bin(self.OPCODE_UTYPE)[2:].zfill(7)
-		self.UTYPE="0b"+bin(int(self.binary,2))[2:].zfill(32)
-		
-		return self.UTYPE
-		
-	def get_load(self): #This function returns Load instruction
-
-		LISTFUNC3_LD=[0,1,2,4,5]
-		self.OP_RV32=bin(3)[2:].zfill(7)
-		self.FUNCT3=random.choice(LISTFUNC3_LD)
-		self.RS1=bin(2)[2:].zfill(5)
-		self.RD = random.randint(0,31)
-		while self.RD==2:
-			self.RD=random.randint(0,31)
-		self.IMM=random.randrange(0,1023,4)
-		while (self.IMM+1073741824>4294967295 | self.IMM+1073741824<2147483648):
-			self.IMM=random.randrange(0,1023,4)
-
-		self.binary="0b"+bin(self.IMM)[2:].zfill(12)+self.RS1+bin(self.FUNCT3)[2:].zfill(3)+bin(self.RD)[2:].zfill(5)+self.OP_RV32
-		self.LD="0b"+bin(int(self.binary,2))[2:].zfill(32)
-				
-		return self.LD
-	
-	def get_store(self): #This function returns all store instruction
-	
-		LISTFUNC3_ST=[0,1,2]
-		self.OP_RV32=bin(35)[2:].zfill(7)
-		self.FUNCT3=random.choice(LISTFUNC3_ST)
-		self.RS1=bin(2)[2:].zfill(5)
-		self.RS2=random.randint(0,31)
-		self.IMM=random.randrange(0,1023,4)
-		while (self.IMM+1073741824>4294967295 |self.IMM+1073741824<2147483648):
-			self.IMM=random.randrange(0,1023,4)
-		self.IMM1="0b"+(bin(self.IMM)[2:][7:])	
-		self.IMM2="0b"+(bin(self.IMM)[2:][:7])
-		self.binary="0b"+self.IMM2[2:].zfill(7)+bin(self.RS2)[2:].zfill(5)+self.RS1+bin(self.FUNCT3)[2:].zfill(3)+self.IMM1[2:].zfill(5)+self.OP_RV32
-		self.ST="0b"+bin(int(self.binary,2))[2:].zfill(32)
-
-		return self.ST
-		
-	def get_arthimetic(self): #This function return all immediate and rtype Instructions
-	
-		self.LIST=[19,51]
-		self.LISTF7 = [0, 32]
-		self.opcode = random.choice(self.LIST)
-		self.FUNCT3 = random.randint(0,7)
-		self.RS1 = random.randint(0, 31)
-		self.RS2 = random.randint(0, 31)
-		self.RD = random.randint(0, 31)
-		self.shamt = random.randint(0, 31)
-		self.IMM = random.randrange(0, 4095)
-		while (self.RD == 2):
-			self.RD = random.randint(0, 31)
-		
-		#In case of selection of Immidiate arthemetic instruction	
-		if (self.opcode == 19):
-			if(self.FUNCT3 == 5):
-				self.FUNCT7 = random.choice(self.LISTF7)
-				self.binary = "0b" + bin(self.FUNCT7)[2:].zfill(7) + bin(self.shamt)[2:].zfill(5) + bin(self.RS1)[2:].zfill(5) + bin(self.FUNCT3)[2:].zfill(3) + bin(self.RD)[2:].zfill(5) + bin(self.opcode)[2:].zfill(7)
-			elif(self.FUNCT3 == 1):
-				self.FUNCT7 = 0
-				self.binary = "0b" + bin(self.FUNCT7)[2:].zfill(7) + bin(self.shamt)[2:].zfill(5) + bin(self.RS1)[2:].zfill(5) + bin(self.FUNCT3)[2:].zfill(3) + bin(self.RD)[2:].zfill(5) + bin(self.opcode)[2:].zfill(7)
-			else:
-				self.binary = "0b" + bin(self.IMM)[2:].zfill(12) + bin(self.RS1)[2:].zfill(5) + bin(self.FUNCT3)[2:].zfill(3) + bin(self.RD)[2:].zfill(5) + bin(self.opcode)[2:].zfill(7)
-			self.ar_hex="0b"+bin(int(self.binary,2))[2:].zfill(32)
-		
-		#In case of selection of R-type arthemetic instruction	
-		else:
-			if(self.FUNCT3 == 0 or self.FUNCT3 == 5):
-				self.FUNCT7 = random.choice(self.LISTF7)
-			else:
-				self.FUNCT7=0
-			
-			self.binary="0b"+bin(self.FUNCT7)[2:].zfill(7)+bin(self.RS2)[2:].zfill(5)+bin(self.RS1)[2:].zfill(5)+bin(self.FUNCT3)[2:].zfill(3)+bin(self.RD)[2:].zfill(5)+bin(self.opcode)[2:].zfill(7)
-			self.ar_hex="0b"+bin(int(self.binary,2))[2:].zfill(32)
-		
-		return self.ar_hex
-	
-	def fixed_brancheq(self,num_list): #Fixed Branch Program
-		program1=['0x00C000EF','0x00150513','0x00950C63','0x00400493','0x00300513','0xFE9518E3','0x00530313','0x0063C863','0x00300313','0x00700393','0xFE7348E3','0x00900E13']
-		program2=["0x00800193","0x00100213","0x00100293","0x404181b3","0xfe304ce3"]
-		program3=["0x09000293","0x00000313","0x00100393","0x00638433","0x00038313","0x00040393","0xfe539ae3"]
-		program4=['0x00C000EF','0x00150513','0x00950863','0x00400493','0x00300513','0xFE9518E3','0x00300313']
-		program5=['0x00000493','0x00000413','0x00A00313','0x00645863','0x008484B3','0x00140413','0xFF5FF06F']
-		program6=['0x00000413','0x00000493','0x00A00E13','0x01C40863','0x008484B3','0x00140413','0xFF5FF06F']
-		program7=['0x00400413','0x00100493','0x00249493','0x00940663','0x00148493','0x408484B3','0x008484B3']
-		program8=['0x00400413','0x00100493','0x00249493','0x00941663','0x00148493','0x408484B3','0x008484B3']
-		main_list=[]
-		self.branch_pg=[]
-		for i in range(num_list):
-			program_choice=random.randrange(1,8)
-			
-			if program_choice==1:
-				main_list.extend(program1)
-			elif program_choice==2:
-				main_list.extend(program2)
-			elif program_choice==3:
-				main_list.extend(program3)
-			elif program_choice==4:
-				main_list.extend(program4)
-			elif program_choice==5:
-				main_list.extend(program5)
-			elif program_choice==6:
-				main_list.extend(program6)
-			elif program_choice==7:
-				main_list.extend(program7)
-			elif program_choice==8:
-				main_list.extend(program8)
-				
-		for x in range(len(main_list)):
-			self.branch_pg.append("0b"+(bin(int(main_list[x],16))[2:].zfill(32)))
-		
-		return self.branch_pg
-	
-	def M_extension(self):
-	
-		self.opcode=bin(51)[2:].zfill(7)
-		self.RD=random.randint(0,31)
-		while (self.RD == 2):
-			self.RD = random.randint(0, 31)
-		self.FUNCT3=random.randint(0,7)
-		self.rs1=random.randint(0,31)
-		self.rs2=random.randint(0,31)
-		self.funct7=bin(1)[2:].zfill(7)
-		self.binary = "0b" + self.funct7 + bin(self.rs2)[2:].zfill(5) + bin(self.rs1)[2:].zfill(5) + bin(self.FUNCT3)[2:].zfill(3) + bin(self.RD)[2:].zfill(5) + self.opcode
-		self.hex="0b"+bin(int(self.binary,2))[2:].zfill(32)
-		
-		return self.hex
-
-	
-	
-	
-	
-	
-		
+		self.listpc=self.program_counter()

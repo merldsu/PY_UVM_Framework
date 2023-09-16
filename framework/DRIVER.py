@@ -19,11 +19,16 @@ from cocotb.queue import Queue, QueueEmpty
 from pyuvm import utility_classes
 from cocotb.triggers import Timer, FallingEdge, RisingEdge
 
-
 class DRIVER(uvm_driver):
+	
+	def build_phase(self):
+		pass
+				
+class DRIVER_SWERV(DRIVER):
 
 	def build_phase(self):
-		self.logger.info("**********Driver Execution**********")
+	
+		self.logger.info("**********Driver Build Phase**********")
 		
 		self.bfm=ConfigDB().get(self,"","bfm")
 		self.gp_Sequencer = uvm_blocking_get_port("gp_Sequencer",self)
@@ -31,23 +36,23 @@ class DRIVER(uvm_driver):
 		
 	async def run_phase(self):
 		self.raise_objection()
-		self.logger.info("**********Driver Sustained********** ")
+		self.logger.info("**********Driver Execution********** ")
 		
 		
 		await RisingEdge(self.bfm.dut.clk)
-		await self.bfm.reset_m(0)
-		#self.bfm.start_tasks()
+		await self.bfm.reset_m(0,1)
 		self.logger.info("Instruction & Data is dispatch to RTL by BFM (***Driver***)")
 		while True:
-			
 			send_pc , send_instr = await self.gp_Sequencer.get()
+			
 			if (send_pc =="0xFFFFFFFF" and send_instr =="0xFFFFFFFF"):
 				await RisingEdge(self.bfm.dut.clk)
-				await self.bfm.reset_m(1)
+				await self.bfm.send_values_bfm(send_pc , '0x00000013')
+				await self.bfm.reset_m(1,1)
+				
 				break
 			else:
 				await self.bfm.send_values_bfm(send_pc , send_instr)
-		self.drop_objection()
 			
-
+		self.drop_objection()
 

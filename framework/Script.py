@@ -14,7 +14,10 @@
 
 import os
 import time
-from datetime import datetime 
+from datetime import datetime
+import cocotb 
+
+
 
 def directory():
 	dir_path = 'log/'
@@ -33,6 +36,8 @@ def directory():
 def copy(dir_p):
 	a = os.getcwd()
 	os.system("cp *.csv "+a+"/"+dir_p)
+	os.system("cp *.txt "+a+"/"+dir_p)
+	os.system("cp *.log "+a+"/"+dir_p)
 	
 def delete():
 	os.remove('./INSTR_RV32.csv')
@@ -40,20 +45,49 @@ def delete():
 	os.remove('./Iss.txt')
 	os.remove('./ISS.txt')
 	os.remove('./ISS.csv')
-	os.remove('./dump.vcd')
+	#os.remove('./dump.fst')
 	os.remove('./program.hex')
 	os.remove('./RESULT_MONITOR.csv')
 	os.remove('./Final_Results.csv')
+	os.remove('./exec.log')
+	filename = 'removed_data.csv'
+	if os.path.isfile(filename):
+		os.remove('./removed_data.csv')
+	else:
+		pass
+		
+
+def over_all_report(info):
+	
+	folder_path = 'log/'
+	file_path = os.path.join(folder_path, "over_all_report.txt")
+	
+	if not os.path.exists(file_path):
+		with open(file_path, "a") as file:
+			file.write(" " * 8 + "\t\t\t######### This is the report of overall Test that execute #########\n\n")
+			file.write("   Date\t\tTime\t\t Test_Name\t\t Number_of_Instructions\t\t Random_Seed_Number\t\t Test_Status\n")
+			
+			
+	with open(file_path, "a") as file:
+		file.write(info + "\n")
 	
 def run(test):
 	os.system(f"make {test}")
 	
+def print1():
+	read_text_files = open("log/Coverage/coverage_summary.txt","r")
+	for x in read_text_files:
+		print(x)
+	read_text_files.close()
+	
 def main():
+	#rep()
 	read_text_file = open("Test.txt","r")
 	for x in read_text_file:
 		run(x)
 		delete()
 	read_text_file.close()
+	print1()
 	
 if __name__ == "__main__":
 	main()	
